@@ -83,7 +83,7 @@ Every setting lives in [`.env.example`](.env.example). The ones that matter:
 ## Deployment
 
 Everything below has a genuinely free tier. See
-[docs/DEPLOY.md](docs/DEPLOY.md) for step-by-step instructions.
+[docs/DEPLOY.md](docs/DEPLOY.md) for step-by-step instructions (Korean: [docs/DEPLOY.ko.md](docs/DEPLOY.ko.md)).
 
 - **Client** → Cloudflare Pages (build `npm run build -w @kmtank/shared && npm run build -w @kmtank/client`, output `packages/client/dist`). Vercel works too, via the included `vercel.json`.
 - **Server** → Render (free, blueprint in `render.yaml`) or Fly.io (`fly.toml`). Both build the root `Dockerfile`.

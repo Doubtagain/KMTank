@@ -79,7 +79,7 @@ DB도, 구글 client id도, 어떤 설정도 필요 없습니다.
 
 ## 배포 (전부 무료 티어)
 
-단계별 안내는 [docs/DEPLOY.md](docs/DEPLOY.md)에 있습니다.
+단계별 안내(한국어, Cloudflare Pages + Render + Supabase 기준)는 [docs/DEPLOY.ko.md](docs/DEPLOY.ko.md)에 있습니다. 영문/대안 서비스 포함 버전은 [docs/DEPLOY.md](docs/DEPLOY.md).
 
 - **클라이언트** → Cloudflare Pages
   (빌드 `npm run build -w @kmtank/shared && npm run build -w @kmtank/client`,

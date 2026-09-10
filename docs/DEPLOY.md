@@ -22,7 +22,7 @@ accounts and ratings.
    applies `packages/server/src/db/schema.sql` on boot, and the file is written
    to be safe to re-run.
 
-Supabase's free Postgres works identically; use its connection string instead.
+Supabase's free Postgres works too, with one catch: use the **Session pooler** connection string (host `aws-0-<region>.pooler.supabase.com`, port 5432), not the direct `db.<ref>.supabase.co` one. The direct host is IPv6-only and Render's free instances cannot reach it. A Korean step-by-step for the Pages + Render + Supabase combination is in [DEPLOY.ko.md](DEPLOY.ko.md).
 
 > Skipping this step is supported. Without `DATABASE_URL` the server keeps
 > accounts and ratings in memory, which is fine for a demo but means every
