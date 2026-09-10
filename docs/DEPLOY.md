@@ -90,6 +90,15 @@ fly deploy
 Set `primary_region` in `fly.toml` to a region near your players (`nrt` Tokyo,
 `iad` Virginia, `fra` Frankfurt, …).
 
+### Option C: Railway
+
+No cold starts, $5/month Hobby plan (includes $5 of usage; this server uses
+about $1–3). **New → Deploy from GitHub repo**, pick the repository; it reads
+`railway.json` and builds the `Dockerfile`. Add the same variables as Render
+under **Variables** (`JWT_SECRET` is not generated for you — paste a random
+string), then **Settings → Networking → Generate Domain** on port 8080. Leave
+"App Sleeping" off.
+
 ### WebSockets
 
 Both providers proxy WebSockets on the same origin as HTTP with no extra

@@ -68,5 +68,9 @@ export const config = {
 } as const;
 
 if (config.isProduction && config.jwtSecret === 'dev-only-insecure-secret-change-me') {
-  console.warn('[config] JWT_SECRET is unset in production. Set it before exposing the server.');
+  // Running with a public secret would let anyone forge a session for any
+  // account. Refusing to start is the only safe behaviour.
+  throw new Error(
+    '[config] JWT_SECRET is not set. Set it to a long random string before running in production.',
+  );
 }

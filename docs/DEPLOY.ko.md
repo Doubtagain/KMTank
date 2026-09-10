@@ -1,10 +1,10 @@
-# KMTank 배포 가이드 (Cloudflare Pages + Render + Supabase)
+# KMTank 배포 가이드 (Cloudflare Pages + Railway + Supabase)
 
-목표: **월 0원.** 세 서비스 모두 카드 등록 없이 무료 플랜으로 끝납니다.
+비용: Cloudflare Pages와 Supabase는 무료, Railway는 Hobby 플랜(월 $5, 사용량 포함)입니다. 이 서버는 256 MB 컨테이너 하나라 실제 사용량은 그 안에 들어갑니다. 대신 콜드 스타트가 없습니다.
 
 ```
-Cloudflare Pages ──HTTPS/WSS──▶ Render ──▶ Supabase Postgres
-   (클라이언트)                  (게임 서버)    (계정 · MMR)
+Cloudflare Pages ──HTTPS/WSS──▶ Railway ──▶ Supabase Postgres
+   (클라이언트)                  (게임 서버)     (계정 · MMR)
 ```
 
 전체 소요 시간은 20~30분입니다. 아래 순서를 지키면 값을 두 번 넣는 일이 없습니다.
@@ -12,12 +12,12 @@ Cloudflare Pages ──HTTPS/WSS──▶ Render ──▶ Supabase Postgres
 | 순서 | 할 일 | 얻는 것 |
 | --- | --- | --- |
 | 1 | Supabase 프로젝트 생성 | `DATABASE_URL` |
-| 2 | Render에 서버 배포 | 서버 주소 `https://kmtank-server.onrender.com` |
+| 2 | Railway에 서버 배포 | 서버 주소 `https://kmtank-server-xxxx.up.railway.app` |
 | 3 | Cloudflare Pages에 클라이언트 배포 | 클라이언트 주소 `https://kmtank.pages.dev` |
-| 4 | Render에 클라이언트 주소 등록 | CORS 완성 |
+| 4 | Railway에 클라이언트 주소 등록 | CORS 완성 |
 | 5 | (선택) Google OAuth → 랭크 모드 활성화 | `GOOGLE_CLIENT_ID` |
 
-준비물: GitHub 계정(리포지토리 `Doubtagain/KMTank`가 이미 푸시되어 있음), Google 계정.
+준비물: GitHub 계정(리포지토리 `Doubtagain/KMTank`가 이미 푸시되어 있음), 결제가 등록된 Railway 계정, Google 계정.
 
 ---
 
@@ -35,7 +35,7 @@ Cloudflare Pages ──HTTPS/WSS──▶ Render ──▶ Supabase Postgres
 4. 프로젝트 화면 **상단의 `Connect` 버튼** 클릭 (또는 좌측 하단 ⚙ **Project Settings → Database**).
 5. **Connection string** 탭에서 **Method(또는 Type)를 `Session pooler`로** 선택합니다.
 
-   > **왜 Session pooler인가:** Render 무료 인스턴스는 IPv4로만 나갑니다. `db.xxxx.supabase.co:5432`로 시작하는 "Direct connection"은 IPv6 전용이라 Render에서 **연결이 안 됩니다.** 호스트가 `aws-0-…pooler.supabase.com`이고 포트가 `5432`인 것을 고르세요. (`Transaction pooler`, 포트 6543도 동작은 하지만 필요 없습니다.)
+   > **왜 Session pooler인가:** `db.xxxx.supabase.co:5432`로 시작하는 "Direct connection"은 IPv6 전용이라 호스팅 환경에 따라 **연결이 안 될 수 있습니다.** Session pooler는 IPv4/IPv6 모두 되고 성능 차이도 없습니다. 호스트가 `aws-0-…pooler.supabase.com`이고 포트가 `5432`인 것을 고르세요. (`Transaction pooler`, 포트 6543도 동작은 하지만 필요 없습니다.)
 
 6. 표시된 URI를 복사하고 `[YOUR-PASSWORD]` 부분을 2번에서 저장한 비밀번호로 바꿉니다. 완성형:
 
@@ -49,36 +49,46 @@ Cloudflare Pages ──HTTPS/WSS──▶ Render ──▶ Supabase Postgres
 
 ---
 
-## 2. Render — 게임 서버
+## 2. Railway — 게임 서버
 
-무료 플랜: 512 MB, 월 750시간(서비스 하나를 상시 켜두기에 충분). **약 15분간 접속이 없으면 잠들고, 다음 접속자가 30~60초 콜드 스타트를 겪습니다.** 그 외에는 전부 동작합니다.
+Hobby 플랜: 월 $5에 $5 사용량 포함. 상시 가동이라 **콜드 스타트가 없습니다.** 리포지토리 루트의 `Dockerfile`과 `railway.json`을 자동으로 읽습니다.
 
-1. <https://dashboard.render.com> 로그인 (GitHub으로 가입하면 다음 단계가 쉽습니다).
-2. 우측 상단 **New +** → **Blueprint**.
-3. **Connect GitHub** → `Doubtagain/KMTank` 선택 (처음이면 GitHub에서 Render 앱에 이 리포지토리 접근 권한을 허용).
-4. Render가 리포지토리 루트의 `render.yaml`을 읽어 `kmtank-server` 서비스를 제안합니다. **Blueprint Name**은 아무거나(`kmtank`).
-5. 아래 환경변수를 물어봅니다. 채워 넣으세요:
-
-   | 변수 | 값 |
-   | --- | --- |
-   | `DATABASE_URL` | 1단계에서 만든 문자열 |
-   | `CORS_ORIGINS` | 일단 `https://kmtank.pages.dev` (3단계에서 다른 이름을 쓰면 4단계에서 수정) |
-   | `GOOGLE_CLIENT_ID` | 비워 두기 (5단계에서 채움) |
-
-   `JWT_SECRET`은 Render가 자동 생성합니다. 건드리지 마세요 — 바꾸면 전원 로그아웃됩니다.
-
-6. **Apply** → 첫 빌드는 Docker 이미지라 3~5분 걸립니다.
-7. 완료되면 서비스 페이지 상단에 주소가 뜹니다: `https://kmtank-server.onrender.com` (이름이 겹치면 뒤에 무작위 문자가 붙습니다 — **실제 표시된 주소를 그대로 메모**).
-8. 확인:
+1. <https://railway.com/new> → **Deploy from GitHub repo** → `Doubtagain/KMTank` 선택 (처음이면 GitHub에서 Railway 앱에 접근 권한 허용).
+2. 서비스 카드가 생기고 바로 빌드가 시작됩니다. **첫 배포는 헬스체크에 실패해도 정상**입니다 — 아직 환경변수가 없어서 그렇습니다. 그대로 진행하세요.
+3. 서비스 카드 클릭 → **Variables** 탭 → **Raw Editor** 눌러서 아래를 통째로 붙여넣기 → **Update Variables**:
 
    ```
-   https://kmtank-server.onrender.com/health      → {"ok":true,"service":"kmtank","season":1}
-   https://kmtank-server.onrender.com/api/config  → "durableRanks":true 여야 함
+   NODE_ENV=production
+   DATABASE_URL=1단계에서 만든 문자열
+   DATABASE_SSL=true
+   JWT_SECRET=아무 무작위 문자열 32자 이상
+   CORS_ORIGINS=https://kmtank.pages.dev
+   GOOGLE_CLIENT_ID=
+   BOTS_ENABLED=true
+   BOT_TARGET=8
+   SEASON=1
    ```
 
-   `durableRanks`가 `false`면 DB 연결에 실패해 인메모리로 폴백한 것입니다. Render 서비스의 **Logs** 탭에서 `[db]`로 시작하는 줄을 보세요. 거의 항상 비밀번호 오타 아니면 Direct connection 문자열을 쓴 경우입니다.
+   - `JWT_SECRET`: 비밀번호 생성기로 만든 아무 값이면 됩니다. 한 번 정하면 바꾸지 마세요 — 바꾸면 전원 로그아웃됩니다.
+   - `CORS_ORIGINS`: 3단계에서 Pages 이름을 `kmtank`로 할 예정이면 이대로. 다른 이름을 쓰면 4단계에서 수정합니다.
+   - `GOOGLE_CLIENT_ID`: 지금은 비워 두고 5단계에서 채웁니다.
+   - `PORT`는 넣지 마세요. Railway가 자동으로 주입하고 서버가 그 값을 읽습니다.
 
-**리전:** `render.yaml`의 `region: singapore`는 Render 리전 중 한국에서 가장 가깝습니다(오리건·오하이오·버지니아·프랑크푸르트·싱가포르 중). 실시간 게임이라 이 선택이 체감에 가장 큽니다.
+4. **Settings** 탭 → **Networking** → **Public Networking** → **Generate Domain**. 포트를 물어보면 `8080`. 생성된 주소(`https://kmtank-server-xxxx.up.railway.app` 형태)를 **그대로 메모** — 3단계에서 씁니다.
+5. 같은 **Settings** 탭에서:
+   - **Deploy → Region**: 선택 가능하면 **Southeast Asia (Singapore)**. 실시간 게임이라 이 선택이 체감에 가장 큽니다.
+   - **Deploy → App Sleeping** (또는 Serverless): **꺼진 상태 유지.** 켜면 유휴 시 잠들어 콜드 스타트가 생깁니다.
+6. 변수를 저장하면 자동으로 재배포됩니다 (**Deployments** 탭에서 진행 상황 확인, 2~4분).
+7. 확인:
+
+   ```
+   https://<railway 주소>/health      → {"ok":true,"service":"kmtank","season":1}
+   https://<railway 주소>/api/config  → "durableRanks":true 여야 함
+   ```
+
+   `durableRanks`가 `false`면 DB 연결에 실패해 인메모리로 폴백한 것입니다. **Deployments → 최근 배포 → View Logs**에서 `[db]`로 시작하는 줄을 보세요. 거의 항상 비밀번호 오타 아니면 Direct connection 문자열을 쓴 경우입니다.
+
+**대안:** 무료로 가고 싶다면 Render(`render.yaml` 블루프린트 포함)도 됩니다. 15분 유휴 시 잠드는 콜드 스타트만 감수하면 나머지는 동일합니다. 영문 가이드 [DEPLOY.md](DEPLOY.md) 참고.
 
 ---
 
@@ -103,28 +113,28 @@ Cloudflare Pages ──HTTPS/WSS──▶ Render ──▶ Supabase Postgres
 
    | 변수 | 값 |
    | --- | --- |
-   | `VITE_SERVER_URL` | 2단계 서버 주소. 예: `https://kmtank-server.onrender.com` — **끝에 `/` 붙이지 않기** |
+   | `VITE_SERVER_URL` | 2단계 Railway 주소. 예: `https://kmtank-server-xxxx.up.railway.app` — **끝에 `/` 붙이지 않기** |
    | `NODE_VERSION` | `22` |
 
    > `VITE_SERVER_URL`은 빌드 시점에 번들 안에 박힙니다. 나중에 바꾸면 **Deployments → 최근 배포 → Retry deployment**로 다시 빌드해야 반영됩니다.
 
 5. **Save and Deploy** → 1~2분.
-6. `https://kmtank.pages.dev` 를 열면 메뉴가 뜨고 **Play Casual**이 바로 됩니다. (서버가 잠들어 있었다면 첫 접속에 30~60초 걸릴 수 있습니다.)
+6. `https://kmtank.pages.dev` 를 열면 메뉴가 뜨고 **Play Casual**이 바로 됩니다.
 
    메뉴 상단에 "This server has no database configured…" 경고가 보이면 2단계의 `durableRanks`를 다시 확인하세요.
 
 ---
 
-## 4. Render에 클라이언트 주소 등록 (CORS)
+## 4. Railway에 클라이언트 주소 등록 (CORS)
 
 3단계에서 프로젝트 이름을 `kmtank`로 했고 2단계에서 `CORS_ORIGINS`를 `https://kmtank.pages.dev`로 넣었다면 **이 단계는 이미 끝난 것**입니다. 다른 이름을 썼다면:
 
-1. Render → `kmtank-server` → 좌측 **Environment**.
+1. Railway → 서비스 → **Variables**.
 2. `CORS_ORIGINS`를 실제 Pages 주소로 수정. 여러 개면 쉼표로 구분, **끝에 `/` 없이**:
    ```
    https://kmtank.pages.dev,https://kmtank.example.com
    ```
-3. **Save Changes** → Render가 자동 재배포합니다.
+3. 저장하면 자동 재배포됩니다.
 
 값은 `스킴 + 호스트 + 포트`가 **완전히 일치**해야 합니다. `https://kmtank.pages.dev`와 `https://kmtank.pages.dev/`는 다른 문자열입니다.
 
@@ -147,33 +157,33 @@ Cloudflare Pages ──HTTPS/WSS──▶ Render ──▶ Supabase Postgres
 
    **승인된 리디렉션 URI는 비워 둡니다.** KMTank는 Google Identity Services 방식이라 리디렉션이 없습니다.
 5. **만들기** → 표시되는 **클라이언트 ID**(`…apps.googleusercontent.com`)를 복사. **클라이언트 보안 비밀번호(secret)는 쓰지 않습니다** — 어디에도 넣지 마세요.
-6. Render → `kmtank-server` → **Environment** → `GOOGLE_CLIENT_ID`에 붙여넣기 → **Save Changes** (자동 재배포, 1~2분).
+6. Railway → 서비스 → **Variables** → `GOOGLE_CLIENT_ID`에 붙여넣기 → 저장 (자동 재배포, 2~3분).
 7. `https://kmtank.pages.dev` 새로고침 → "Sign in with Google" 버튼이 보이고, 로그인하면 이름과 `Placements 0/5`가 뜨면 완료. **Play Ranked**가 활성화됩니다.
 
 로그인이 실패하면 브라우저 콘솔(F12)을 보세요:
 - `The given origin is not allowed…` → 4번 원본 목록에 현재 주소가 없음.
-- 서버가 401 `Google rejected the credential` → Render의 `GOOGLE_CLIENT_ID`가 콘솔에서 만든 것과 **다른 값**임.
+- 서버가 401 `Google rejected the credential` → Railway의 `GOOGLE_CLIENT_ID`가 콘솔에서 만든 것과 **다른 값**임.
 
 ---
 
 ## 완료 확인 체크리스트
 
 ```
-https://kmtank-server.onrender.com/health       {"ok":true,...}
-https://kmtank-server.onrender.com/api/config   "googleEnabled":true, "durableRanks":true
-https://kmtank-server.onrender.com/api/stats    {"rooms":1,"players":0,"queued":0}
+https://<railway 주소>/health       {"ok":true,...}
+https://<railway 주소>/api/config   "googleEnabled":true, "durableRanks":true
+https://<railway 주소>/api/stats    {"rooms":1,"players":0,"queued":0}
 https://kmtank.pages.dev                        메뉴 → Play Casual 정상, 경고 문구 없음
 ```
 
-랭크는 **동시에 4명**이 큐에 들어와야 매치가 시작됩니다(`RANKED_MIN_PLAYERS`). 친구 3명과 같이 테스트하거나, 혼자서라면 브라우저 탭 4개에 서로 다른 Google 계정으로 로그인하면 됩니다. 4명이 모이면 최대 30초(`RANKED_QUEUE_GRACE`) 뒤에 시작하고, 매치는 8분(`RANKED_MATCH_SECONDS`)입니다. 둘 다 Render Environment에서 조절할 수 있습니다.
+랭크는 **동시에 4명**이 큐에 들어와야 매치가 시작됩니다(`RANKED_MIN_PLAYERS`). 친구 3명과 같이 테스트하거나, 혼자서라면 브라우저 탭 4개에 서로 다른 Google 계정으로 로그인하면 됩니다. 4명이 모이면 최대 30초(`RANKED_QUEUE_GRACE`) 뒤에 시작하고, 매치는 8분(`RANKED_MATCH_SECONDS`)입니다. 둘 다 Railway Variables에서 조절할 수 있습니다.
 
 ---
 
 ## 이후 운영
 
-- **재배포**: `main`에 푸시하면 Render와 Pages 둘 다 자동으로 다시 빌드됩니다.
-- **시즌 리셋**: Render의 `SEASON`을 `2`로 올리면 새 래더가 시작됩니다. 이전 시즌 데이터는 DB에 남습니다.
-- **콜드 스타트가 싫다면**: 무료 크론 서비스(cron-job.org 등)로 `/health`를 10분마다 호출하면 Render 인스턴스가 잠들지 않습니다. 월 750시간 한도 안에서 상시 가동은 가능하지만, 이 방식이 Render 무료 플랜의 취지에 맞는지는 Render 약관을 직접 확인하세요.
+- **재배포**: `main`에 푸시하면 Railway와 Pages 둘 다 자동으로 다시 빌드됩니다.
+- **시즌 리셋**: Railway의 `SEASON`을 `2`로 올리면 새 래더가 시작됩니다. 이전 시즌 데이터는 DB에 남습니다.
+- **비용 확인**: Railway → 프로젝트 → **Usage**에서 이번 달 사용량이 보입니다. 이 서버 하나면 월 $1~3 수준이라 Hobby에 포함된 $5 안에 들어갑니다.
 - **Supabase 일시정지**: 1주일간 DB 요청이 없으면 프로젝트가 멈춥니다. 대시보드에서 **Restore**를 누르면 몇 분 안에 돌아오고, 데이터는 보존됩니다. 플레이어가 꾸준히 있으면 발생하지 않습니다.
-- **비용 상한**: 세 서비스 모두 사용량 초과 시 **과금이 아니라 거부**(빌드 실패, 연결 거절)로 동작합니다. 갑자기 요금이 나올 구조가 아닙니다.
-- **로그**: 서버 오류는 Render → Logs, 빌드 오류는 Pages → Deployments → 해당 배포 → Build log.
+- **비용 상한**: Pages와 Supabase는 한도 초과 시 과금이 아니라 거부로 동작합니다. Railway는 사용량 과금이므로, 걱정되면 프로젝트 **Settings → Usage Limits**에서 월 상한(예: $10)을 걸어 두세요.
+- **로그**: 서버 오류는 Railway → 서비스 → **Deployments → View Logs**, 빌드 오류는 Pages → Deployments → 해당 배포 → Build log.

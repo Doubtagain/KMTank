@@ -79,18 +79,18 @@ DB도, 구글 client id도, 어떤 설정도 필요 없습니다.
 
 ## 배포 (전부 무료 티어)
 
-단계별 안내(한국어, Cloudflare Pages + Render + Supabase 기준)는 [docs/DEPLOY.ko.md](docs/DEPLOY.ko.md)에 있습니다. 영문/대안 서비스 포함 버전은 [docs/DEPLOY.md](docs/DEPLOY.md).
+단계별 안내(한국어, Cloudflare Pages + Railway + Supabase 기준)는 [docs/DEPLOY.ko.md](docs/DEPLOY.ko.md)에 있습니다. 영문/대안 서비스 포함 버전은 [docs/DEPLOY.md](docs/DEPLOY.md).
 
 - **클라이언트** → Cloudflare Pages
   (빌드 `npm run build -w @kmtank/shared && npm run build -w @kmtank/client`,
   출력 `packages/client/dist`). Vercel도 `vercel.json`으로 그대로 동작합니다.
-- **서버** → Render 무료 플랜(`render.yaml` 블루프린트) 또는 Fly.io(`fly.toml`).
-  둘 다 루트 `Dockerfile`을 빌드합니다.
+- **서버** → Railway(`railway.json`, 월 $5 Hobby), Render 무료 플랜(`render.yaml`), Fly.io(`fly.toml`) 중 택일.
+  전부 루트 `Dockerfile`을 빌드합니다.
 - **DB** → Neon 또는 Supabase 무료 Postgres. 스키마는 서버 부팅 시 자동 적용됩니다.
 
-주의할 점 하나: Render 무료 인스턴스는 약 15분간 트래픽이 없으면 잠들고,
-깨어나는 데 30~60초가 걸립니다. 한산한 시간대 첫 접속자가 그 대기를 겪습니다.
-Fly.io 설정은 머신 1대를 계속 켜두는 쪽이라 콜드 스타트가 없습니다.
+트레이드오프는 하나입니다: Render 무료 인스턴스는 약 15분간 트래픽이 없으면 잠들어
+첫 접속자가 30~60초를 기다립니다. Railway와 Fly.io는 상시 가동이라 콜드 스타트가 없는 대신
+소액 유료입니다.
 
 ## 디렉터리 구조
 

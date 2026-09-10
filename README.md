@@ -82,16 +82,16 @@ Every setting lives in [`.env.example`](.env.example). The ones that matter:
 
 ## Deployment
 
-Everything below has a genuinely free tier. See
+Everything below has a free tier except Railway ($5/month Hobby), which is the no-cold-start option. See
 [docs/DEPLOY.md](docs/DEPLOY.md) for step-by-step instructions (Korean: [docs/DEPLOY.ko.md](docs/DEPLOY.ko.md)).
 
 - **Client** → Cloudflare Pages (build `npm run build -w @kmtank/shared && npm run build -w @kmtank/client`, output `packages/client/dist`). Vercel works too, via the included `vercel.json`.
-- **Server** → Render (free, blueprint in `render.yaml`) or Fly.io (`fly.toml`). Both build the root `Dockerfile`.
+- **Server** → Railway (`railway.json`), Render (free, `render.yaml`) or Fly.io (`fly.toml`). All build the root `Dockerfile`.
 - **Database** → Neon or Supabase Postgres. The schema is applied automatically on boot.
 
 The one real caveat: Render's free instance sleeps after ~15 minutes idle, so
-the first player after a quiet spell waits through a cold start. Fly's config
-here keeps one machine warm instead.
+the first player after a quiet spell waits through a cold start. Railway and
+Fly keep the server warm for a few dollars a month.
 
 ## Repository layout
 
