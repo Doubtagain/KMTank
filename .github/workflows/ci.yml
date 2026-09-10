@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Type-check every package
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Smoke-test the server
+        run: |
+          JWT_SECRET=ci-secret BOT_TARGET=4 node packages/server/dist/index.js &
+          SERVER_PID=$!
+          for i in $(seq 1 20); do
+            curl -sf http://127.0.0.1:8080/health && break
+            sleep 1
+          done
+          node tools/smoke-client.mjs
+          kill $SERVER_PID
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the server image
+        run: docker build -t kmtank-server .

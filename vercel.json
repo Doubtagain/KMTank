@@ -1,0 +1,8 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm run build -w @kmtank/shared && npm run build -w @kmtank/client",
+  "outputDirectory": "packages/client/dist",
+  "installCommand": "npm ci",
+  "framework": null,
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+}

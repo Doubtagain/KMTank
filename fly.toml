@@ -1,0 +1,50 @@
+# Fly.io config for the KMTank game server.
+#
+# Alternative to Render when you want a machine that does not cold-start on
+# every visit. A single shared-cpu-1x/256MB machine sits inside the monthly
+# trial credit. Unlike Render, `auto_stop_machines` is left off so the
+# simulation keeps running for connected players.
+#
+#   fly launch --no-deploy --copy-config
+#   fly secrets set JWT_SECRET=... GOOGLE_CLIENT_ID=... DATABASE_URL=...
+#   fly deploy
+
+app = "kmtank"
+primary_region = "nrt"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  NODE_ENV = "production"
+  PORT = "8080"
+  BOTS_ENABLED = "true"
+  BOT_TARGET = "8"
+  DATABASE_SSL = "true"
+  SEASON = "1"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+  [http_service.concurrency]
+    type = "connections"
+    soft_limit = 180
+    hard_limit = 250
+
+[[http_service.checks]]
+  interval = "30s"
+  timeout = "4s"
+  grace_period = "10s"
+  method = "GET"
+  path = "/health"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
+  cpu_kind = "shared"
+  cpus = 1

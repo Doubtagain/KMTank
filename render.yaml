@@ -1,0 +1,42 @@
+# Render blueprint for the KMTank game server.
+#
+# The free instance type sleeps after ~15 minutes without traffic and takes
+# 30-60s to wake, which for a realtime game means the first player after a quiet
+# spell waits for a cold start. Everything else works on free.
+#
+# Deploy: New > Blueprint > point at this repository.
+
+services:
+  - type: web
+    name: kmtank-server
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    region: singapore
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 8080
+      # Generated once by Render and then kept; rotating it signs everyone out.
+      - key: JWT_SECRET
+        generateValue: true
+      # Set these two in the Render dashboard.
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      # Comma-separated list of the origins your client is served from.
+      - key: CORS_ORIGINS
+        sync: false
+      - key: DATABASE_SSL
+        value: true
+      - key: BOTS_ENABLED
+        value: true
+      - key: BOT_TARGET
+        value: 8
+      - key: SEASON
+        value: 1
