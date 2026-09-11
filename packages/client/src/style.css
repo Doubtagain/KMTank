@@ -50,7 +50,7 @@ body {
   pointer-events: none;
 }
 
-#ui > * {
+#ui > .menu-screen {
   pointer-events: auto;
 }
 
@@ -84,7 +84,7 @@ kbd {
   position: absolute;
   inset: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 380px);
+  grid-template-columns: minmax(0, 560px) minmax(0, 380px);
   gap: 26px;
   align-content: center;
   justify-content: center;

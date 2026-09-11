@@ -28,6 +28,8 @@ export class GameSocket {
 
   private seq = 0;
   private pingTimer: number | null = null;
+  /** Set while a close was requested locally, so it is not reported as a drop. */
+  private closingIntentionally = false;
   /** Smoothed round-trip time in milliseconds. */
   latency = 0;
 
@@ -91,7 +93,11 @@ export class GameSocket {
 
     socket.addEventListener('close', (event) => {
       this.stopPinging();
-      this.socket = null;
+      if (this.socket === socket) this.socket = null;
+      if (this.closingIntentionally) {
+        this.closingIntentionally = false;
+        return;
+      }
       this.stateHandler?.('closed', event.reason || undefined);
     });
 
@@ -105,6 +111,7 @@ export class GameSocket {
     if (!this.socket) return;
     const socket = this.socket;
     this.socket = null;
+    this.closingIntentionally = true;
     try {
       socket.close(1000, 'client left');
     } catch {

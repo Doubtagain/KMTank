@@ -93,8 +93,13 @@ class Game {
       }
     });
     this.socket.onState((state, detail) => {
-      if (state === 'closed' && this.inMatch) {
-        this.overlays.showToast(detail ?? 'Disconnected from the server.', 'error');
+      if (state === 'closed') {
+        // Whether mid-match or still waiting for the welcome, a dropped socket
+        // means there is nothing to show; a blank canvas would look frozen.
+        this.overlays.showToast(
+          detail ?? (this.inMatch ? 'Disconnected from the server.' : 'Could not reach the game server.'),
+          'error',
+        );
         this.returnToMenu();
       } else if (state === 'error') {
         this.overlays.showToast(detail ?? 'Connection failed.', 'error');
