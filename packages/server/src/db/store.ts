@@ -80,11 +80,12 @@ export function toProfile(user: UserRecord): UserProfile {
 
 export class MemoryStore implements Store {
   readonly durable = false;
+  constructor(private readonly reason = 'DATABASE_URL is not set') {}
   private readonly users = new Map<string, UserRecord>();
   private readonly bySub = new Map<string, string>();
 
   async init(): Promise<void> {
-    console.warn('[db] DATABASE_URL is not set - using an in-memory store. Ranks reset on restart.');
+    console.warn(`[db] ${this.reason} - using an in-memory store. Ranks reset on restart.`);
   }
 
   async close(): Promise<void> {
@@ -358,7 +359,9 @@ export async function initStore(): Promise<Store> {
       await pgStore.close().catch(() => {});
     }
   }
-  const memory = new MemoryStore();
+  const memory = new MemoryStore(
+    config.databaseUrl ? 'Postgres connection failed (see error above)' : 'DATABASE_URL is not set',
+  );
   await memory.init();
   store = memory;
   return store;
