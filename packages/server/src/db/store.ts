@@ -170,8 +170,8 @@ const SELECT_USER = `
          COALESCE(r.kills, 0)     AS kills,
          COALESCE(r.deaths, 0)    AS deaths,
          COALESCE(r.high_score,0) AS high_score
-    FROM users u
-    LEFT JOIN ratings r ON r.user_id = u.id AND r.season = $3
+    FROM kmtank.users u
+    LEFT JOIN kmtank.ratings r ON r.user_id = u.id AND r.season = $3
    WHERE u.id = $1
 `;
 
@@ -223,7 +223,7 @@ export class PostgresStore implements Store {
     try {
       await client.query('BEGIN');
       const upserted = await client.query(
-        `INSERT INTO users (google_sub, email, name, avatar_url)
+        `INSERT INTO kmtank.users (google_sub, email, name, avatar_url)
               VALUES ($1, $2, $3, $4)
          ON CONFLICT (google_sub) DO UPDATE
                 SET name = EXCLUDED.name,
@@ -235,7 +235,7 @@ export class PostgresStore implements Store {
       );
       const id = String(upserted.rows[0].id);
       await client.query(
-        `INSERT INTO ratings (user_id, season, mmr, peak_mmr)
+        `INSERT INTO kmtank.ratings (user_id, season, mmr, peak_mmr)
               VALUES ($1, $2, $3, $3)
          ON CONFLICT (user_id, season) DO NOTHING`,
         [id, config.season, STARTING_MMR],
@@ -266,7 +266,7 @@ export class PostgresStore implements Store {
     try {
       await client.query('BEGIN');
       const match = await client.query(
-        `INSERT INTO matches (season, mode, player_count, duration_s)
+        `INSERT INTO kmtank.matches (season, mode, player_count, duration_s)
               VALUES ($1, $2, $3, $4) RETURNING id`,
         [config.season, mode, results.length, Math.round(durationSeconds)],
       );
@@ -274,7 +274,7 @@ export class PostgresStore implements Store {
 
       for (const row of results) {
         await client.query(
-          `INSERT INTO match_players
+          `INSERT INTO kmtank.match_players
                  (match_id, user_id, placement, score, kills, deaths, mmr_before, mmr_after)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
            ON CONFLICT (match_id, user_id) DO NOTHING`,
@@ -290,7 +290,7 @@ export class PostgresStore implements Store {
           ],
         );
         await client.query(
-          `INSERT INTO ratings (user_id, season, mmr, peak_mmr, matches, wins, kills, deaths, high_score)
+          `INSERT INTO kmtank.ratings (user_id, season, mmr, peak_mmr, matches, wins, kills, deaths, high_score)
                 VALUES ($1, $2, $3, $3, 1, $4, $5, $6, $7)
            ON CONFLICT (user_id, season) DO UPDATE
                   SET mmr = EXCLUDED.mmr,
@@ -324,8 +324,8 @@ export class PostgresStore implements Store {
   async leaderboard(limit: number, offset: number): Promise<LeaderboardRow[]> {
     const result = await this.pool.query(
       `SELECT u.id, u.name, u.avatar_url, r.mmr, r.wins, r.matches
-         FROM ratings r
-         JOIN users u ON u.id = r.user_id
+         FROM kmtank.ratings r
+         JOIN kmtank.users u ON u.id = r.user_id
         WHERE r.season = $1 AND r.matches >= $2
         ORDER BY r.mmr DESC, r.matches DESC
         LIMIT $3 OFFSET $4`,

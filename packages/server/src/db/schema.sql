@@ -1,8 +1,11 @@
 -- KMTank schema. Safe to run repeatedly.
+--
+-- Everything lives in its own schema so the game can share a database with
+-- anything else (Supabase, for one, ships plenty in public) without name clashes.
 
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
+CREATE SCHEMA IF NOT EXISTS kmtank;
 
-CREATE TABLE IF NOT EXISTS users (
+CREATE TABLE IF NOT EXISTS kmtank.users (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   google_sub  TEXT NOT NULL UNIQUE,
   email       TEXT,
@@ -13,8 +16,8 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 -- One rating row per user per season, so a season reset is a config change.
-CREATE TABLE IF NOT EXISTS ratings (
-  user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+CREATE TABLE IF NOT EXISTS kmtank.ratings (
+  user_id     UUID NOT NULL REFERENCES kmtank.users(id) ON DELETE CASCADE,
   season      INTEGER NOT NULL,
   mmr         INTEGER NOT NULL DEFAULT 1000,
   peak_mmr    INTEGER NOT NULL DEFAULT 1000,
@@ -27,9 +30,9 @@ CREATE TABLE IF NOT EXISTS ratings (
   PRIMARY KEY (user_id, season)
 );
 
-CREATE INDEX IF NOT EXISTS ratings_season_mmr_idx ON ratings (season, mmr DESC, matches DESC);
+CREATE INDEX IF NOT EXISTS ratings_season_mmr_idx ON kmtank.ratings (season, mmr DESC, matches DESC);
 
-CREATE TABLE IF NOT EXISTS matches (
+CREATE TABLE IF NOT EXISTS kmtank.matches (
   id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   season       INTEGER NOT NULL,
   mode         TEXT NOT NULL,
@@ -38,9 +41,9 @@ CREATE TABLE IF NOT EXISTS matches (
   ended_at     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE TABLE IF NOT EXISTS match_players (
-  match_id   UUID NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
-  user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+CREATE TABLE IF NOT EXISTS kmtank.match_players (
+  match_id   UUID NOT NULL REFERENCES kmtank.matches(id) ON DELETE CASCADE,
+  user_id    UUID NOT NULL REFERENCES kmtank.users(id) ON DELETE CASCADE,
   placement  INTEGER NOT NULL,
   score      INTEGER NOT NULL,
   kills      INTEGER NOT NULL,
@@ -50,4 +53,4 @@ CREATE TABLE IF NOT EXISTS match_players (
   PRIMARY KEY (match_id, user_id)
 );
 
-CREATE INDEX IF NOT EXISTS match_players_user_idx ON match_players (user_id);
+CREATE INDEX IF NOT EXISTS match_players_user_idx ON kmtank.match_players (user_id);
